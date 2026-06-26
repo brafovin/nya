@@ -16,7 +16,7 @@
   const GROUND_Y = H - 80;     // Boden-Oberkante
   const CUBE = 42;             // Würfelgröße
   const GRAVITY = 2400;        // px/s^2
-  const JUMP_V = -860;         // Sprung-Anfangsgeschwindigkeit
+  const JUMP_V = -760;         // Sprung-Anfangsgeschwindigkeit (niedrigerer Sprung)
   const SPEED = 360;           // horizontale Weltgeschwindigkeit px/s
   const TILE = 60;             // Rastergröße für Level-Editor
   const CEIL_Y = 0;            // Decken-Oberkante (für Flugmodus)
