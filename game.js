@@ -99,7 +99,7 @@
       map: [
         "________________",
         "_____^______^___",
-        "___B________2___",
+        "___B________B___",
         "______^_________",
         "__J________^____",
         "_____^__________",
@@ -116,7 +116,7 @@
       map: [
         "________________",
         "____^______^____",
-        "_______3________",
+        "_______B________",
         "__^_________^___",
         "______J_________",
         "___^_______B____",
@@ -177,7 +177,7 @@
         "____^_______v___",
         "________C_______",
         "__^____B____J___",
-        "_^_______2____E_",
+        "_^_______B____E_",
       ],
     },
   ];
@@ -1307,10 +1307,19 @@
     const k = cellKey(cell.col, cell.row);
     if (erase || editorTool === "erase") {
       editorCells.delete(k);
-    } else {
-      editorCells.set(k, editorTool);
-      Sound.click();
+      return;
     }
+    // Blöcke dürfen nicht direkt aufeinander gestapelt werden (sonst zu hoch zum Springen)
+    if (editorTool === "block") {
+      const above = editorCells.get(cellKey(cell.col, cell.row + 1));
+      const below = editorCells.get(cellKey(cell.col, cell.row - 1));
+      if (above === "block" || below === "block") {
+        flashHint("Blöcke nicht aufeinander stapeln!");
+        return;
+      }
+    }
+    editorCells.set(k, editorTool);
+    Sound.click();
   }
 
   function editorPointerDown(e) {
