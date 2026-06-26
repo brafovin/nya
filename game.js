@@ -19,6 +19,14 @@
   const JUMP_V = -860;         // Sprung-Anfangsgeschwindigkeit
   const SPEED = 360;           // horizontale Weltgeschwindigkeit px/s
   const TILE = 60;             // Rastergröße für Level-Editor
+  const CEIL_Y = 0;            // Decken-Oberkante (für Flugmodus)
+
+  // ---- Flugmodus (Ship) ---------------------------------------------------
+  const SHIP_POWER = 1850;     // Schub nach oben (gedrückt) px/s^2
+  const SHIP_GRAVITY = 1650;   // Fall nach unten (losgelassen) px/s^2
+  const SHIP_MAXV = 560;       // maximale vertikale Geschwindigkeit
+  const MODE = { CUBE: "cube", SHIP: "ship" };
+  let mode = MODE.CUBE;
 
   // ---- Status -------------------------------------------------------------
   const STATE = { MENU: 0, PLAY: 1, DEAD: 2, WIN: 3 };
@@ -50,7 +58,14 @@
   //   2  = Block 2 hoch
   //   3  = Block 3 hoch
   //   J  = Sprung-Pad (gelb) — automatischer hoher Sprung
-  //   x  = Stachel auf einem 1-hohen Block
+  //   v  = Stachel an der Decke (zeigt nach unten) — für Flugmodus
+  //   T  = Decken-Block (1 hoch, hängt von oben)
+  //   Y  = Decken-Block (2 hoch)
+  //   o  = schwebender Block (mittlere Höhe) — für Flugmodus
+  //   H  = Korridor: Decken-Block + Boden-Block mit Lücke in der Mitte
+  //   P  = Portal -> Flugmodus (Ship)
+  //   C  = Portal -> Würfelmodus (Cube)
+  //   E  = Endmarkierung
   // Jede Spalte ist TILE px breit. Wir parsen das in konkrete Objekte.
   // =========================================================================
 
@@ -110,6 +125,60 @@
         "^^__^^__^^_^^__^E",
       ],
     },
+    {
+      name: "Dry Out",
+      color: "#ffb74d",
+      bg: ["#3a1a0a", "#5c3212"],
+      startMode: "cube",
+      map: [
+        "________________",
+        "___^___^___J___^",
+        "__^__B___^^___B_",
+        "_____^____P_____",
+        "______v_____^___",
+        "___o______o_____",
+        "__^____v____o___",
+        "______o____H____",
+        "________C_______",
+        "__^___^___J___^_",
+        "_^__B___^^___^_E",
+      ],
+    },
+    {
+      name: "Base After Base",
+      color: "#b388ff",
+      bg: ["#1a0a3a", "#2e125c"],
+      startMode: "ship",
+      map: [
+        "________________",
+        "_____v_____^____",
+        "__o_____o_____o_",
+        "v___^___v___^___",
+        "___H_____H______",
+        "_o___v___^___o__",
+        "__^___H____v____",
+        "____o___o___o___",
+        "v__^__v__^__v__^",
+        "___H___o___H___E",
+      ],
+    },
+    {
+      name: "Clutterfunk",
+      color: "#ff5277",
+      bg: ["#2a0a14", "#5c1230"],
+      startMode: "cube",
+      map: [
+        "________________",
+        "__^__J__^__B__^_",
+        "____^_____P_____",
+        "_____v____^____o",
+        "__o____H____v___",
+        "v___^___v___^___",
+        "________C_______",
+        "__^__B__^^__J__^",
+        "_^___^___2___^_E",
+      ],
+    },
   ];
 
   let currentLevel = 0;
@@ -141,6 +210,32 @@
           case "J":
             obstacles.push(pad(x, GROUND_Y));
             break;
+          case "v":
+            obstacles.push(spikeDown(x, CEIL_Y));
+            break;
+          case "T":
+            obstacles.push(block(x, CEIL_Y, TILE, TILE));
+            break;
+          case "Y":
+            obstacles.push(block(x, CEIL_Y, TILE, TILE * 2));
+            break;
+          case "o":
+            obstacles.push(block(x, (CEIL_Y + GROUND_Y) / 2 - TILE / 2, TILE, TILE));
+            break;
+          case "H": {
+            // Korridor mit Lücke in der Mitte
+            const gap = TILE * 2;
+            const topH = (GROUND_Y - gap) / 2;
+            obstacles.push(block(x, CEIL_Y, TILE, topH));
+            obstacles.push(block(x, GROUND_Y - topH, TILE, topH));
+            break;
+          }
+          case "P":
+            obstacles.push(portal(x, MODE.SHIP));
+            break;
+          case "C":
+            obstacles.push(portal(x, MODE.CUBE));
+            break;
           case "E":
             // Endmarkierung — Position merken
             break;
@@ -167,6 +262,28 @@
   }
   function block(x, y, w, h) {
     return { type: "block", x, y, w, h, deadly: false };
+  }
+  function spikeDown(x, ceilY) {
+    const s = TILE * 0.7;
+    return {
+      type: "spikeDown",
+      x: x + (TILE - s) / 2,
+      y: ceilY,
+      w: s,
+      h: s,
+      deadly: true,
+    };
+  }
+  function portal(x, toMode) {
+    return {
+      type: "portal",
+      mode: toMode,
+      x: x + TILE / 2 - 22,
+      y: CEIL_Y,
+      w: 44,
+      h: GROUND_Y,
+      used: false,
+    };
   }
   function pad(x, groundY) {
     const s = TILE * 0.55;
@@ -199,6 +316,7 @@
     player.onGround = true;
     player.angle = 0;
     player.trail = [];
+    mode = (LEVELS[currentLevel] && LEVELS[currentLevel].startMode) || MODE.CUBE;
   }
 
   // =========================================================================
@@ -370,6 +488,12 @@
     function jump() { init(); resume(); if (!ctx) return; const t = ctx.currentTime; tone(520, t, 0.12, "square", 0.25, sfxGain, 900); }
     function pad() { init(); resume(); if (!ctx) return; const t = ctx.currentTime; tone(400, t, 0.22, "sawtooth", 0.28, sfxGain, 1500); }
     function click() { init(); resume(); if (!ctx) return; const t = ctx.currentTime; tone(660, t, 0.08, "square", 0.2, sfxGain, 880); }
+    function portal() {
+      init(); resume(); if (!ctx) return; const t = ctx.currentTime;
+      tone(300, t, 0.3, "sine", 0.3, sfxGain, 1400);
+      tone(450, t + 0.04, 0.28, "triangle", 0.22, sfxGain, 1800);
+      noise(t, 0.18, 0.12, 3000);
+    }
     function death() {
       init(); resume(); if (!ctx) return; const t = ctx.currentTime;
       tone(300, t, 0.5, "sawtooth", 0.35, sfxGain, 40);
@@ -389,7 +513,7 @@
     }
     function isMuted() { return muted; }
 
-    return { startMusic, stopMusic, jump, pad, click, death, win, toggleMute, isMuted, resume, init, isPlaying: () => playing };
+    return { startMusic, stopMusic, jump, pad, click, portal, death, win, toggleMute, isMuted, resume, init, isPlaying: () => playing };
   })();
 
   // =========================================================================
@@ -566,6 +690,30 @@
     const inset = s.w * 0.22;
     return aabb(px, py, pw, ph, s.x + inset, s.y + s.h * 0.3, s.w - inset * 2, s.h * 0.7);
   }
+  function hitsSpikeDown(px, py, pw, ph, s) {
+    const inset = s.w * 0.22;
+    return aabb(px, py, pw, ph, s.x + inset, s.y, s.w - inset * 2, s.h * 0.7);
+  }
+
+  function switchMode(m) {
+    if (mode === m) return;
+    mode = m;
+    player.angle = 0;
+    burst(player.x + CUBE / 2, player.y + CUBE / 2, m === MODE.SHIP ? "#ff9d2e" : "#6bff6b", 26);
+    Sound.portal();
+    if (m === MODE.CUBE) player.onGround = false;
+  }
+
+  function shipFlame() {
+    particles.push({
+      x: player.x, y: player.y + CUBE / 2 + (Math.random() - 0.5) * 12,
+      vx: -SPEED * 0.6 - Math.random() * 140,
+      vy: (Math.random() - 0.5) * 60,
+      life: 0.25, max: 0.25,
+      color: Math.random() < 0.5 ? "#ff9d2e" : "#ffd54a",
+      size: 3 + Math.random() * 4,
+    });
+  }
 
   function update(dt) {
     if (state !== STATE.PLAY) return;
@@ -573,77 +721,100 @@
     // Welt scrollt
     camX += SPEED * dt;
 
-    // Schwerkraft
-    player.vy += GRAVITY * dt;
-    player.y += player.vy * dt;
+    const wpx = player.x + camX; // Welt-Koordinate des Spielers
+    const wasOnGround = player.onGround;
 
-    // Rotation: in der Luft drehen, am Boden auf 90°-Raster einrasten
-    if (!player.onGround) {
-      player.angle += dt * 6.0; // ~ eine Umdrehung pro Sprung
+    if (mode === MODE.SHIP) {
+      // --- Flug-Physik: gedrückt = Schub hoch, sonst Fall ---
+      const accel = holding ? -SHIP_POWER : SHIP_GRAVITY;
+      player.vy += accel * dt;
+      player.vy = Math.max(-SHIP_MAXV, Math.min(SHIP_MAXV, player.vy));
+      player.y += player.vy * dt;
+      player.onGround = false;
+      // Schiff neigt sich nach Flugrichtung
+      const target = (player.vy / SHIP_MAXV) * 0.55;
+      player.angle += (target - player.angle) * Math.min(1, dt * 12);
+      if (holding) shipFlame();
     } else {
-      const snap = Math.round(player.angle / (Math.PI / 2)) * (Math.PI / 2);
-      player.angle += (snap - player.angle) * Math.min(1, dt * 20);
+      // --- Würfel-Physik ---
+      player.vy += GRAVITY * dt;
+      player.y += player.vy * dt;
+      if (!player.onGround) {
+        player.angle += dt * 6.0; // ~ eine Umdrehung pro Sprung
+      } else {
+        const snap = Math.round(player.angle / (Math.PI / 2)) * (Math.PI / 2);
+        player.angle += (snap - player.angle) * Math.min(1, dt * 20);
+      }
+      player.onGround = false;
     }
 
-    const px = player.x;
-    const wpx = px + camX; // Welt-Koordinate des Spielers
-
-    // Standard: Boden
     let groundLevel = GROUND_Y;
-    let wasOnGround = player.onGround;
-    player.onGround = false;
 
-    // Plattform-Kollision (Blöcke): von oben landen, seitlich tödlich
+    // Kollisionen
     for (const o of world.obstacles) {
-      if (o.type === "block") {
-        // sichtbar bei o.x..o.x+w in Weltkoordinaten
-        const overlapX = wpx + CUBE > o.x && wpx < o.x + o.w;
-        if (!overlapX) continue;
-
-        const cubeBottom = player.y + CUBE;
-        // landet oben drauf?
-        if (player.vy >= 0 && cubeBottom - player.vy * dt <= o.y + 1) {
-          if (cubeBottom >= o.y && player.y < o.y) {
-            player.y = o.y - CUBE;
-            player.vy = 0;
-            player.onGround = true;
-            groundLevel = o.y;
-            continue;
-          }
+      if (o.type === "portal") {
+        if (!o.used && aabb(wpx, player.y, CUBE, CUBE, o.x, o.y, o.w, o.h)) {
+          o.used = true;
+          switchMode(o.mode);
         }
-        // sonst: seitlicher / unterer Treffer = Tod
-        if (aabb(wpx, player.y, CUBE, CUBE, o.x, o.y, o.w, o.h)) {
-          die();
-          return;
-        }
-      } else if (o.type === "spike") {
-        if (hitsSpike(wpx, player.y, CUBE, CUBE, o)) {
-          die();
-          return;
-        }
-      } else if (o.type === "pad") {
+        continue;
+      }
+      if (o.type === "pad") {
         if (aabb(wpx, player.y, CUBE, CUBE, o.x, o.y - 4, o.w, o.h + 8) && player.vy >= -50) {
           player.vy = JUMP_V * 1.35; // Boost
           player.onGround = false;
           burst(o.x + o.w / 2, o.y, "#ffd54a", 18);
           Sound.pad();
         }
+        continue;
+      }
+      if (o.type === "spike") {
+        if (hitsSpike(wpx, player.y, CUBE, CUBE, o)) { die(); return; }
+        continue;
+      }
+      if (o.type === "spikeDown") {
+        if (hitsSpikeDown(wpx, player.y, CUBE, CUBE, o)) { die(); return; }
+        continue;
+      }
+      if (o.type === "block") {
+        const overlapX = wpx + CUBE > o.x && wpx < o.x + o.w;
+        if (!overlapX) continue;
+
+        if (mode === MODE.SHIP) {
+          // im Flugmodus ist jeder Block tödlich
+          if (aabb(wpx, player.y, CUBE, CUBE, o.x, o.y, o.w, o.h)) { die(); return; }
+        } else {
+          const cubeBottom = player.y + CUBE;
+          // landet oben drauf?
+          if (player.vy >= 0 && cubeBottom - player.vy * dt <= o.y + 1) {
+            if (cubeBottom >= o.y && player.y < o.y) {
+              player.y = o.y - CUBE;
+              player.vy = 0;
+              player.onGround = true;
+              groundLevel = o.y;
+              continue;
+            }
+          }
+          // sonst: seitlicher / unterer Treffer = Tod
+          if (aabb(wpx, player.y, CUBE, CUBE, o.x, o.y, o.w, o.h)) { die(); return; }
+        }
       }
     }
 
-    // Boden
-    if (player.y + CUBE >= groundLevel) {
-      player.y = groundLevel - CUBE;
-      player.vy = 0;
-      if (!player.onGround && !wasOnGround) {
-        // gerade gelandet (außer wir standen schon auf einem Block)
+    // Boden & Decke
+    if (mode === MODE.SHIP) {
+      if (player.y < CEIL_Y) { player.y = CEIL_Y; player.vy = 0; }
+      if (player.y + CUBE >= GROUND_Y) { player.y = GROUND_Y - CUBE; player.vy = 0; }
+    } else {
+      if (player.y + CUBE >= groundLevel) {
+        player.y = groundLevel - CUBE;
+        player.vy = 0;
+        if (!wasOnGround) landDust(player.x + CUBE / 2, groundLevel);
+        player.onGround = true;
       }
-      if (!wasOnGround) landDust(player.x + CUBE / 2, groundLevel);
-      player.onGround = true;
+      // Halten = wiederholt springen, sobald wieder am Boden
+      if (holding && player.onGround) tryJump();
     }
-
-    // Halten = wiederholt springen, sobald wieder am Boden
-    if (holding && player.onGround) tryJump();
 
     // Trail
     player.trail.unshift({ x: player.x, y: player.y, a: player.angle });
@@ -693,6 +864,7 @@
     drawGrid(lv.color);
 
     if (state === STATE.PLAY || state === STATE.DEAD) {
+      if (mode === MODE.SHIP) drawCeiling(lv.color);
       drawObstacles(lv.color);
       drawGround(lv.color);
       if (state === STATE.PLAY) drawPlayer(lv.color);
@@ -772,6 +944,19 @@
     ctx.restore();
   }
 
+  function drawCeiling(color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.moveTo(0, CEIL_Y);
+    ctx.lineTo(W, CEIL_Y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawObstacles(color) {
     for (const o of world.obstacles) {
       const sx = o.x - camX; // Bildschirm-X
@@ -779,10 +964,14 @@
 
       if (o.type === "spike") {
         drawSpike(sx, o.y, o.w, o.h, color);
+      } else if (o.type === "spikeDown") {
+        drawSpikeDown(sx, o.y, o.w, o.h, color);
       } else if (o.type === "block") {
         drawBlock(sx, o.y, o.w, o.h, color);
       } else if (o.type === "pad") {
         drawPad(sx, o.y, o.w, o.h);
+      } else if (o.type === "portal") {
+        drawPortal(sx, o.y, o.w, o.h, o.mode);
       }
     }
   }
@@ -801,6 +990,43 @@
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawSpikeDown(x, y, w, h, color) {
+    ctx.save();
+    ctx.fillStyle = "#16162c";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w / 2, y + h);
+    ctx.lineTo(x + w, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPortal(x, y, w, h, m) {
+    const col = m === MODE.SHIP ? "#ff9d2e" : "#6bff6b";
+    ctx.save();
+    ctx.translate(x + w / 2, y + h / 2);
+    // pulsierender Ring
+    const pulse = 1 + 0.06 * Math.sin(camX * 0.05);
+    ctx.scale(pulse, 1);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 6;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 24;
+    ctx.globalAlpha = 0.9;
+    roundRect(-w / 2, -h / 2 + 6, w, h - 12, w / 2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = col;
+    ctx.fill();
     ctx.restore();
   }
 
@@ -853,6 +1079,8 @@
       ctx.restore();
     }
 
+    if (mode === MODE.SHIP) { drawShip(color); return; }
+
     // Würfel
     ctx.save();
     ctx.translate(player.x + CUBE / 2, player.y + CUBE / 2);
@@ -885,6 +1113,62 @@
     ctx.fillStyle = "#fff";
     ctx.fillRect(-inner / 2 + 3, -3, 4, 6);
     ctx.fillRect(inner / 2 - 7, -3, 4, 6);
+
+    ctx.restore();
+  }
+
+  function drawShip(color) {
+    ctx.save();
+    ctx.translate(player.x + CUBE / 2, player.y + CUBE / 2);
+    ctx.rotate(player.angle);
+
+    // Heck-Flamme bei Schub
+    if (holding) {
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      const fl = 14 + Math.random() * 14;
+      const grd = ctx.createLinearGradient(-CUBE / 2, 0, -CUBE / 2 - fl, 0);
+      grd.addColorStop(0, "#ffd54a");
+      grd.addColorStop(1, "rgba(255,80,0,0)");
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.moveTo(-CUBE / 2, -8);
+      ctx.lineTo(-CUBE / 2 - fl, 0);
+      ctx.lineTo(-CUBE / 2, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Rumpf (Tropfen/Rakete)
+    const grd = ctx.createLinearGradient(-CUBE / 2, -CUBE / 2, CUBE / 2, CUBE / 2);
+    grd.addColorStop(0, color);
+    grd.addColorStop(1, "#ffffff");
+    ctx.fillStyle = grd;
+    ctx.strokeStyle = "#0a0a14";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.moveTo(CUBE / 2 + 6, 0);          // Nase vorne
+    ctx.quadraticCurveTo(CUBE / 4, -CUBE / 2, -CUBE / 4, -CUBE / 2 + 4);
+    ctx.quadraticCurveTo(-CUBE / 2, -CUBE / 2 + 6, -CUBE / 2, 0);
+    ctx.quadraticCurveTo(-CUBE / 2, CUBE / 2 - 6, -CUBE / 4, CUBE / 2 - 4);
+    ctx.quadraticCurveTo(CUBE / 4, CUBE / 2, CUBE / 2 + 6, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.stroke();
+
+    // Cockpit-Fenster
+    ctx.fillStyle = "rgba(10,10,20,0.85)";
+    ctx.beginPath();
+    ctx.arc(4, -2, CUBE * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath();
+    ctx.arc(7, -5, CUBE * 0.06, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
   }
@@ -930,4 +1214,14 @@
   buildLevelPicker();
   bestStart.textContent = getBest(currentLevel) + "%";
   requestAnimationFrame(loop);
+
+  // kleiner Debug-/Test-Hook
+  window.__cubeDash = {
+    mode: () => mode,
+    state: () => state,
+    level: () => currentLevel,
+    setLevel: (i) => { currentLevel = i; },
+    setCamX: (v) => { camX = v; },
+    portals: () => (world ? world.obstacles.filter((o) => o.type === "portal").length : 0),
+  };
 })();
