@@ -151,3 +151,23 @@ h1 {
   text-shadow: 0 1px 2px #000;
 }
 .attempt { font-size: 13px; color: #9a9ac0; letter-spacing: 1px; }
+
+/* Mute-Button */
+#muteBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  background: rgba(15, 15, 35, 0.75);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+#muteBtn:hover { transform: scale(1.08); box-shadow: 0 0 18px rgba(0, 229, 255, 0.5); }
+#muteBtn.muted { opacity: 0.55; }

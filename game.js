@@ -240,6 +240,159 @@
   }
 
   // =========================================================================
+  // AUDIO — prozedurale Chiptune-Musik + Soundeffekte (Web Audio API)
+  // Keine externen Dateien: alles wird live im Browser synthetisiert.
+  // =========================================================================
+  const TRACKS = [
+    {
+      // Stereo Madness — treibend, a-moll
+      bpm: 140,
+      lead: [9, null, 12, 16, 21, 16, 12, null, 7, null, 11, 14, 17, 14, 11, null],
+      bass: [-3, -3, 4, 4, -5, -5, 0, 0],
+    },
+    {
+      // Back On Track — e-moll
+      bpm: 132,
+      lead: [16, null, 19, 16, 14, null, 12, 14, 16, null, 21, 19, 16, 14, 12, null],
+      bass: [4, 4, -1, -1, 0, 0, 2, 2],
+    },
+    {
+      // Polargeist — schnell, C-Dur
+      bpm: 152,
+      lead: [12, 16, 19, 24, 19, 16, 12, 16, 14, 17, 21, 17, 14, 11, 7, null],
+      bass: [0, 0, 5, 5, 7, 7, -3, -3],
+    },
+  ];
+
+  const Sound = (() => {
+    let ctx = null, master, musicGain, sfxGain, noiseBuf = null;
+    let muted = false;
+    let schedTimer = null;
+    let nextNoteTime = 0;
+    let step = 0;
+    let track = null;
+    let playing = false;
+    const LOOKAHEAD = 25;       // ms
+    const AHEAD = 0.12;         // s
+
+    // semitone (von C4) -> Frequenz
+    function freq(n) { return 261.63 * Math.pow(2, n / 12); }
+
+    function init() {
+      if (ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ctx = new AC();
+      master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+      musicGain = ctx.createGain(); musicGain.gain.value = 0.30; musicGain.connect(master);
+      sfxGain = ctx.createGain(); sfxGain.gain.value = 0.55; sfxGain.connect(master);
+      // Rausch-Puffer für Hi-Hats / Explosion
+      const len = ctx.sampleRate * 1.0;
+      noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    }
+
+    function resume() { if (ctx && ctx.state === "suspended") ctx.resume(); }
+
+    // --- Basis-Tongenerator mit ADSR-Hüllkurve ---------------------------
+    function tone(f, t, dur, type, vol, dest, slideTo) {
+      if (!ctx) return;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f, t);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(dest || sfxGain);
+      o.start(t); o.stop(t + dur + 0.02);
+    }
+
+    function noise(t, dur, vol, hpFreq) {
+      if (!ctx || !noiseBuf) return;
+      const s = ctx.createBufferSource();
+      s.buffer = noiseBuf;
+      const g = ctx.createGain();
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass"; hp.frequency.value = hpFreq || 6000;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(hp); hp.connect(g); g.connect(sfxGain);
+      s.start(t); s.stop(t + dur + 0.02);
+    }
+
+    // --- Sequencer -------------------------------------------------------
+    function scheduleStep(s, t) {
+      const secPer16 = 60 / track.bpm / 4;
+      // Lead (eine Oktave höher, Square)
+      const ln = track.lead[s];
+      if (ln != null) tone(freq(ln + 12), t, secPer16 * 1.6, "square", 0.18, musicGain);
+      // Bass (alle 2 Steps, Triangle)
+      if (s % 2 === 0) {
+        const bn = track.bass[s / 2];
+        if (bn != null) tone(freq(bn - 12), t, secPer16 * 1.9, "triangle", 0.30, musicGain);
+      }
+      // Kick auf Viertel
+      if (s % 4 === 0) tone(150, t, 0.12, "sine", 0.45, musicGain, 50);
+      // Hi-Hat auf Achtel-Offbeats
+      if (s % 2 === 1) noise(t, 0.03, 0.06, 8000);
+    }
+
+    function scheduler() {
+      if (!ctx || !track) return;
+      const secPer16 = 60 / track.bpm / 4;
+      while (nextNoteTime < ctx.currentTime + AHEAD) {
+        scheduleStep(step, nextNoteTime);
+        nextNoteTime += secPer16;
+        step = (step + 1) % 16;
+      }
+    }
+
+    function startMusic(levelIndex) {
+      init(); resume();
+      if (!ctx) return;
+      track = TRACKS[levelIndex % TRACKS.length];
+      step = 0;
+      nextNoteTime = ctx.currentTime + 0.08;
+      playing = true;
+      if (schedTimer) clearInterval(schedTimer);
+      schedTimer = setInterval(scheduler, LOOKAHEAD);
+    }
+
+    function stopMusic() {
+      playing = false;
+      if (schedTimer) { clearInterval(schedTimer); schedTimer = null; }
+    }
+
+    // --- Soundeffekte ----------------------------------------------------
+    function jump() { init(); resume(); if (!ctx) return; const t = ctx.currentTime; tone(520, t, 0.12, "square", 0.25, sfxGain, 900); }
+    function pad() { init(); resume(); if (!ctx) return; const t = ctx.currentTime; tone(400, t, 0.22, "sawtooth", 0.28, sfxGain, 1500); }
+    function click() { init(); resume(); if (!ctx) return; const t = ctx.currentTime; tone(660, t, 0.08, "square", 0.2, sfxGain, 880); }
+    function death() {
+      init(); resume(); if (!ctx) return; const t = ctx.currentTime;
+      tone(300, t, 0.5, "sawtooth", 0.35, sfxGain, 40);
+      tone(200, t, 0.5, "square", 0.25, sfxGain, 30);
+      noise(t, 0.4, 0.4, 1200);
+    }
+    function win() {
+      init(); resume(); if (!ctx) return; let t = ctx.currentTime;
+      const seq = [0, 4, 7, 12, 16, 19];
+      seq.forEach((n, i) => tone(freq(n), t + i * 0.11, 0.25, "square", 0.3, sfxGain));
+    }
+
+    function toggleMute() {
+      muted = !muted;
+      if (master) master.gain.value = muted ? 0 : 0.9;
+      return muted;
+    }
+    function isMuted() { return muted; }
+
+    return { startMusic, stopMusic, jump, pad, click, death, win, toggleMute, isMuted, resume, init, isPlaying: () => playing };
+  })();
+
+  // =========================================================================
   // EINGABE
   // =========================================================================
   let holding = false;
@@ -261,6 +414,7 @@
       player.vy = JUMP_V;
       player.onGround = false;
       burst(player.x + CUBE / 2, player.y + CUBE, currentColor(), 8);
+      Sound.jump();
     }
   }
 
@@ -281,13 +435,26 @@
   window.addEventListener("touchend", () => { holding = false; });
 
   // Overlays per Klick auf Buttons
-  document.getElementById("startBtn").addEventListener("click", startGame);
-  document.getElementById("retryBtn").addEventListener("click", startGame);
-  document.getElementById("menuBtn").addEventListener("click", toMenu);
-  document.getElementById("winMenuBtn").addEventListener("click", toMenu);
+  document.getElementById("startBtn").addEventListener("click", () => { Sound.click(); startGame(); });
+  document.getElementById("retryBtn").addEventListener("click", () => { Sound.click(); startGame(); });
+  document.getElementById("menuBtn").addEventListener("click", () => { Sound.click(); toMenu(); });
+  document.getElementById("winMenuBtn").addEventListener("click", () => { Sound.click(); toMenu(); });
   document.getElementById("winNextBtn").addEventListener("click", () => {
+    Sound.click();
     currentLevel = (currentLevel + 1) % LEVELS.length;
     startGame();
+  });
+
+  // Ton an/aus
+  const muteBtn = document.getElementById("muteBtn");
+  function updateMuteBtn() {
+    const m = Sound.isMuted();
+    muteBtn.textContent = m ? "🔇" : "🔊";
+    muteBtn.classList.toggle("muted", m);
+  }
+  muteBtn.addEventListener("click", () => { Sound.init(); Sound.resume(); Sound.toggleMute(); updateMuteBtn(); });
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "KeyM") { Sound.init(); Sound.toggleMute(); updateMuteBtn(); }
   });
 
   // =========================================================================
@@ -321,6 +488,7 @@
 
   function toMenu() {
     state = STATE.MENU;
+    Sound.stopMusic();
     overlay.classList.remove("hidden");
     deadScreen.classList.add("hidden");
     winScreen.classList.add("hidden");
@@ -346,10 +514,13 @@
     hud.classList.remove("hidden");
     hudAttempt.textContent = attempts;
     document.documentElement.style.setProperty("--accent", currentColor());
+    Sound.startMusic(currentLevel);
   }
 
   function die() {
     state = STATE.DEAD;
+    Sound.stopMusic();
+    Sound.death();
     const pct = progressPercent();
     setBest(currentLevel, pct);
     burst(player.x + CUBE / 2, player.y + CUBE / 2, "#ff4444", 40);
@@ -368,6 +539,8 @@
 
   function winGame() {
     state = STATE.WIN;
+    Sound.stopMusic();
+    Sound.win();
     setBest(currentLevel, 100);
     burst(player.x + CUBE / 2, player.y + CUBE / 2, "#6bff6b", 60);
     winAttempts.textContent = attempts;
@@ -453,6 +626,7 @@
           player.vy = JUMP_V * 1.35; // Boost
           player.onGround = false;
           burst(o.x + o.w / 2, o.y, "#ffd54a", 18);
+          Sound.pad();
         }
       }
     }

@@ -21,6 +21,7 @@ python3 -m http.server 8000
 | Springen  | **Leertaste**, **↑**, **W**, Mausklick, Tippen |
 | Wiederholt springen | Taste/Maus **gedrückt halten**     |
 | Neustart  | **Leertaste** (nach Game Over)               |
+| Ton an/aus | **M** oder Klick auf 🔊 (oben rechts)        |
 
 ## ✨ Features
 
@@ -29,6 +30,7 @@ python3 -m http.server 8000
 - 📊 Fortschrittsanzeige & Prozent-Highscore (im Browser gespeichert)
 - 🎨 3 Level mit eigenen Farben & Parallax-Hintergrund
 - 💥 Partikel-Explosionen
+- 🎵 **Prozedurale Chiptune-Musik & Soundeffekte** (Web Audio API, keine Dateien nötig) — eigener Beat pro Level, plus Sprung-, Pad-, Tod- und Sieg-Sounds
 - 📱 Funktioniert auch auf dem Handy (Touch)
 
 ## 🛠️ Eigene Level bauen
