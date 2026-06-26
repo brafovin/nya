@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Cube Dash — ein Geometry-Dash-Klon</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="game" width="960" height="540"></canvas>
+
+    <!-- Overlays -->
+    <div id="overlay" class="overlay">
+      <div class="panel">
+        <h1>CUBE&nbsp;DASH</h1>
+        <p class="tag">Ein Geometry-Dash-Klon</p>
+        <p class="hint">
+          <b>Springen:</b> Leertaste / Pfeil&nbsp;hoch / W / Maus / Tippen<br />
+          Halte gedrückt, um wiederholt zu springen.<br />
+          Weiche den Stacheln aus und überlebe bis zum Ende!
+        </p>
+        <div class="levelpick" id="levelpick"></div>
+        <button id="startBtn" class="btn">SPIEL STARTEN</button>
+        <p class="best">Bestleistung: <span id="bestStart">0%</span></p>
+      </div>
+    </div>
+
+    <div id="dead" class="overlay hidden">
+      <div class="panel">
+        <h1 class="dead-title">GAME OVER</h1>
+        <p class="tag">Du hast es bis <span id="deadPct">0%</span> geschafft</p>
+        <p class="best">Versuche: <span id="attempts">1</span> · Beste: <span id="bestDead">0%</span></p>
+        <button id="retryBtn" class="btn">NOCHMAL (Leertaste)</button>
+        <button id="menuBtn" class="btn btn-ghost">Hauptmenü</button>
+      </div>
+    </div>
+
+    <div id="win" class="overlay hidden">
+      <div class="panel">
+        <h1 class="win-title">GESCHAFFT! 🎉</h1>
+        <p class="tag">Level abgeschlossen!</p>
+        <p class="best">Versuche: <span id="winAttempts">1</span></p>
+        <button id="winNextBtn" class="btn">Weiter</button>
+        <button id="winMenuBtn" class="btn btn-ghost">Hauptmenü</button>
+      </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div class="progress"><div id="progressFill"></div><span id="progressPct">0%</span></div>
+      <div class="attempt">Versuch <span id="hudAttempt">1</span></div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

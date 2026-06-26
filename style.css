@@ -1,0 +1,153 @@
+:root {
+  --accent: #00e5ff;
+  --accent2: #ff2e88;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: #0a0a14;
+  font-family: "Segoe UI", system-ui, Arial, sans-serif;
+  color: #fff;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game-wrap {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, #1a1a3a 0%, #06060f 70%);
+}
+
+canvas {
+  display: block;
+  width: min(100vw, 177.78vh);
+  height: min(56.25vw, 100vh);
+  background: #0d0d1f;
+  box-shadow: 0 0 60px rgba(0, 229, 255, 0.15);
+  image-rendering: auto;
+}
+
+/* Overlays */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 5, 15, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 10;
+}
+.overlay.hidden, .hidden { display: none !important; }
+
+.panel {
+  text-align: center;
+  padding: 36px 44px;
+  border-radius: 18px;
+  background: rgba(15, 15, 35, 0.85);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.2);
+  max-width: 90vw;
+}
+
+h1 {
+  font-size: clamp(32px, 6vw, 64px);
+  letter-spacing: 6px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+}
+.dead-title { background: linear-gradient(90deg, #ff5252, #ff2e88); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.win-title { background: linear-gradient(90deg, #6bff6b, #00e5ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+.tag { margin-top: 8px; font-size: 16px; color: var(--accent); letter-spacing: 2px; }
+.hint { margin: 20px 0; font-size: 14px; line-height: 1.7; color: #c9c9e0; }
+.best { margin-top: 16px; font-size: 14px; color: #9a9ac0; }
+
+.btn {
+  margin-top: 18px;
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #06060f;
+  background: linear-gradient(90deg, var(--accent), #4dffd2);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+  display: block;
+  width: 100%;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(0, 229, 255, 0.6); }
+.btn:active { transform: translateY(0); }
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  box-shadow: none;
+}
+
+.levelpick { display: flex; gap: 10px; justify-content: center; margin: 18px 0 4px; flex-wrap: wrap; }
+.levelpick button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  background: rgba(0, 229, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: all 0.12s;
+}
+.levelpick button.active { background: var(--accent); color: #06060f; }
+.levelpick button:hover { background: rgba(0, 229, 255, 0.25); }
+
+/* HUD */
+#hud {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 5;
+  pointer-events: none;
+}
+.progress {
+  position: relative;
+  width: min(60vw, 520px);
+  height: 22px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#progressFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 0.08s linear;
+}
+.progress span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
+}
+.attempt { font-size: 13px; color: #9a9ac0; letter-spacing: 1px; }
