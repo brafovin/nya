@@ -171,3 +171,58 @@ h1 {
 }
 #muteBtn:hover { transform: scale(1.08); box-shadow: 0 0 18px rgba(0, 229, 255, 0.5); }
 #muteBtn.muted { opacity: 0.55; }
+
+/* Level-Editor */
+#editorbar {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(10, 12, 28, 0.86);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.18);
+  max-width: 96vw;
+}
+.ed-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.ed-tool {
+  width: 46px;
+  height: 46px;
+  font-size: 22px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+}
+.ed-tool:hover { transform: translateY(-2px); background: rgba(0, 229, 255, 0.18); }
+.ed-tool.active {
+  background: var(--accent);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.6);
+  border-color: #fff;
+}
+.ed-btn {
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 9px;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  background: rgba(0, 229, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.1s, transform 0.1s;
+}
+.ed-btn:hover { background: rgba(0, 229, 255, 0.22); transform: translateY(-1px); }
+.ed-go {
+  background: linear-gradient(90deg, #00e5ff, #4dffd2);
+  color: #06060f;
+  border: none;
+  font-weight: 700;
+}
+.ed-hint { font-size: 12px; color: #9a9ac0; text-align: center; }

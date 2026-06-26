@@ -34,6 +34,7 @@ python3 -m http.server 8000
 - 🎨 **6 Level** mit eigenen Farben & Parallax-Hintergrund
 - 💥 Partikel-Explosionen
 - 🎵 **Prozedurale Chiptune-Musik & Soundeffekte** (Web Audio API, keine Dateien nötig) — eigener Beat pro Level, plus Sprung-, Pad-, Tod- und Sieg-Sounds
+- 🛠️ **Level-Editor** — baue eigene Level, teste sie sofort und speichere sie (bleibt im Browser erhalten und ist im Menü spielbar)
 - 📱 Funktioniert auch auf dem Handy (Touch)
 
 ## 🛠️ Eigene Level bauen
@@ -57,5 +58,20 @@ Jedes Zeichen ist eine Raster-Spalte:
 | `E`     | Endmarkierung                   |
 
 Pro Level kann zusätzlich `startMode: "cube"` oder `"ship"` gesetzt werden.
+
+## 🛠️ Level-Editor
+
+Klicke im Hauptmenü auf **„🛠️ Eigenes Level erstellen"**.
+
+- **Werkzeug wählen** (oben): Boden-Stachel, Decken-Stachel, Block, Sprung-Pad, Portal → Flug, Portal → Würfel, Radierer
+- **Platzieren:** Klicken oder Ziehen im Raster · **Rechtsklick** löscht
+- **Scrollen:** Pfeiltasten ◀ ▶, Tasten A/D oder Mausrad
+- **🧊/🚀 Start:** legt fest, ob das Level im Würfel- oder Flugmodus beginnt
+- **▶️ Testen:** sofort ausprobieren (Tod/Sieg führt zurück in den Editor)
+- **💾 Speichern:** das Level wird im Browser gespeichert und erscheint als
+  „★ Eigenes Level" im Hauptmenü
+- **🗑️ Leeren:** Raster zurücksetzen
+
+Der Spieler startet links und läuft nach rechts — baue dein Level entlang der Linie auf.
 
 Viel Spaß! 🚀

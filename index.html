@@ -13,6 +13,27 @@
     <!-- Ton an/aus -->
     <button id="muteBtn" title="Ton an/aus (M)">🔊</button>
 
+    <!-- Level-Editor-Werkzeugleiste -->
+    <div id="editorbar" class="hidden">
+      <div class="ed-row ed-tools">
+        <button data-tool="spikeUp" class="ed-tool active" title="Boden-Stachel">⛰️</button>
+        <button data-tool="spikeDown" class="ed-tool" title="Decken-Stachel">🔻</button>
+        <button data-tool="block" class="ed-tool" title="Block">🟦</button>
+        <button data-tool="pad" class="ed-tool" title="Sprung-Pad">🟡</button>
+        <button data-tool="portalShip" class="ed-tool" title="Portal → Flugmodus">🟧</button>
+        <button data-tool="portalCube" class="ed-tool" title="Portal → Würfelmodus">🟩</button>
+        <button data-tool="erase" class="ed-tool" title="Radierer">🧽</button>
+      </div>
+      <div class="ed-row ed-actions">
+        <button id="edModeBtn" class="ed-btn">🧊 Start: Würfel</button>
+        <button id="edTestBtn" class="ed-btn ed-go">▶️ Testen</button>
+        <button id="edSaveBtn" class="ed-btn">💾 Speichern</button>
+        <button id="edClearBtn" class="ed-btn">🗑️ Leeren</button>
+        <button id="edMenuBtn" class="ed-btn">◀️ Menü</button>
+      </div>
+      <div class="ed-hint">Klicken/Ziehen zum Platzieren · Rechtsklick = löschen · ◀ ▶ / Mausrad = scrollen</div>
+    </div>
+
     <!-- Overlays -->
     <div id="overlay" class="overlay">
       <div class="panel">
@@ -27,6 +48,7 @@
         </p>
         <div class="levelpick" id="levelpick"></div>
         <button id="startBtn" class="btn">SPIEL STARTEN</button>
+        <button id="openEditorBtn" class="btn btn-ghost">🛠️ EIGENES LEVEL ERSTELLEN</button>
         <p class="best">Bestleistung: <span id="bestStart">0%</span></p>
       </div>
     </div>
